@@ -2,13 +2,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { toast } from "sonner";
-import { MOCK_CURRENT_USER, MOCK_TRANSACTIONS } from "../mockData";
+import { MOCK_TRANSACTIONS } from "../mockData";
 import { PACKAGES, formatINR } from "../types";
+import type { User } from "../types";
 
 type Page = "dashboard" | "network" | "investments" | "admin" | "certificate";
 
 interface DashboardProps {
-  userName: string;
+  userProfile: User;
   onNavigate: (page: Page) => void;
 }
 
@@ -44,15 +45,22 @@ function Sparkline({
   );
 }
 
-export function Dashboard({ userName, onNavigate }: DashboardProps) {
-  const user = MOCK_CURRENT_USER;
-  const pkg = PACKAGES.find((p) => p.tier === user.package);
+export function Dashboard({ userProfile, onNavigate }: DashboardProps) {
+  const [transactions] = useState(MOCK_TRANSACTIONS);
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawType, setWithdrawType] = useState<"roi" | "commission">("roi");
+  const [withdrawLoading, setWithdrawLoading] = useState(false);
 
-  const roiData = [2500, 2500, 3500, 5000, 5000, 5000, 5000];
-  const commData = [0, 2000, 1500, 3500, 750, 1000, 2000];
-  const teamData = [1, 3, 8, 12, 15, 20, 23];
+  const pkg = PACKAGES.find((p) => p.tier === userProfile.package);
+  const roiBalance = userProfile.roiBalance;
+  const commissionBalance = userProfile.commissionBalance;
+  const totalWithdrawn = userProfile.totalWithdrawn;
+  const directReferrals = userProfile.directReferrals;
+  const teamSize = userProfile.teamSize;
+
+  const roiData = [2500, 2500, 3500, 5000, 5000, 5000, roiBalance || 5000];
+  const commData = [0, 2000, 1500, 3500, 750, 1000, commissionBalance || 2000];
+  const teamData = [1, 3, 8, 12, 15, 20, teamSize || 23];
 
   const handleWithdraw = () => {
     const amt = Number.parseFloat(withdrawAmount);
@@ -60,14 +68,17 @@ export function Dashboard({ userName, onNavigate }: DashboardProps) {
       toast.error("Enter a valid amount");
       return;
     }
-    const bal =
-      withdrawType === "roi" ? user.roiBalance : user.commissionBalance;
+    const bal = withdrawType === "roi" ? roiBalance : commissionBalance;
     if (amt > bal) {
       toast.error("Insufficient balance");
       return;
     }
-    toast.success(`Withdrawal request of ${formatINR(amt)} submitted!`);
-    setWithdrawAmount("");
+    setWithdrawLoading(true);
+    setTimeout(() => {
+      toast.success(`Withdrawal request of ${formatINR(amt)} submitted!`);
+      setWithdrawAmount("");
+      setWithdrawLoading(false);
+    }, 600);
   };
 
   const getTypeColor = (type: string) => {
@@ -89,7 +100,7 @@ export function Dashboard({ userName, onNavigate }: DashboardProps) {
           Welcome back
         </p>
         <h1 className="text-2xl sm:text-3xl font-bold tracking-[0.1em] uppercase text-foreground">
-          {userName}
+          {userProfile.name}
         </h1>
         <div className="mt-3 flex flex-wrap gap-3">
           {pkg && (
@@ -105,7 +116,7 @@ export function Dashboard({ userName, onNavigate }: DashboardProps) {
             </span>
           )}
           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs tracking-wider uppercase text-muted-foreground border border-border">
-            Referral: {user.referralCode}
+            Referral: {userProfile.referralCode}
           </span>
         </div>
       </div>
@@ -113,7 +124,7 @@ export function Dashboard({ userName, onNavigate }: DashboardProps) {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <KpiCard
           title="Total ROI Earned"
-          value={formatINR(user.roiBalance + user.totalWithdrawn)}
+          value={formatINR(roiBalance + totalWithdrawn)}
           sub={pkg ? `${formatINR(pkg.monthlyROI)}/month` : ""}
           data={roiData}
           note="+5% Monthly"
@@ -121,15 +132,15 @@ export function Dashboard({ userName, onNavigate }: DashboardProps) {
         />
         <KpiCard
           title="Team Commission"
-          value={formatINR(user.commissionBalance)}
-          sub={`${user.directReferrals} direct referrals`}
+          value={formatINR(commissionBalance)}
+          sub={`${directReferrals} direct referrals`}
           data={commData}
-          note="16-Level Structure"
+          note="15-Level Structure"
           color="oklch(0.6 0.15 240)"
         />
         <KpiCard
           title="Team Network"
-          value={user.teamSize.toString()}
+          value={teamSize.toString()}
           sub="Total members"
           data={teamData}
           note="Growing team"
@@ -148,7 +159,7 @@ export function Dashboard({ userName, onNavigate }: DashboardProps) {
                 ROI Balance
               </p>
               <p className="text-xl font-bold gold-text">
-                {formatINR(user.roiBalance)}
+                {formatINR(roiBalance)}
               </p>
             </div>
             <div className="bg-muted/50 rounded-lg p-4">
@@ -159,7 +170,7 @@ export function Dashboard({ userName, onNavigate }: DashboardProps) {
                 className="text-xl font-bold"
                 style={{ color: "oklch(0.6 0.15 240)" }}
               >
-                {formatINR(user.commissionBalance)}
+                {formatINR(commissionBalance)}
               </p>
             </div>
             <div className="bg-muted/50 rounded-lg p-4 col-span-2">
@@ -167,7 +178,7 @@ export function Dashboard({ userName, onNavigate }: DashboardProps) {
                 Total Withdrawn
               </p>
               <p className="text-xl font-bold text-muted-foreground">
-                {formatINR(user.totalWithdrawn)}
+                {formatINR(totalWithdrawn)}
               </p>
             </div>
           </div>
@@ -180,14 +191,24 @@ export function Dashboard({ userName, onNavigate }: DashboardProps) {
               <button
                 type="button"
                 onClick={() => setWithdrawType("roi")}
-                className={`flex-1 py-2 text-xs rounded-lg border transition-all uppercase tracking-wider ${withdrawType === "roi" ? "border-primary text-primary bg-primary/10" : "border-border text-muted-foreground"}`}
+                className={`flex-1 py-2 text-xs rounded-lg border transition-all uppercase tracking-wider ${
+                  withdrawType === "roi"
+                    ? "border-primary text-primary bg-primary/10"
+                    : "border-border text-muted-foreground"
+                }`}
+                data-ocid="dashboard.toggle"
               >
                 ROI
               </button>
               <button
                 type="button"
                 onClick={() => setWithdrawType("commission")}
-                className={`flex-1 py-2 text-xs rounded-lg border transition-all uppercase tracking-wider ${withdrawType === "commission" ? "border-primary text-primary bg-primary/10" : "border-border text-muted-foreground"}`}
+                className={`flex-1 py-2 text-xs rounded-lg border transition-all uppercase tracking-wider ${
+                  withdrawType === "commission"
+                    ? "border-primary text-primary bg-primary/10"
+                    : "border-border text-muted-foreground"
+                }`}
+                data-ocid="dashboard.toggle"
               >
                 Commission
               </button>
@@ -199,13 +220,16 @@ export function Dashboard({ userName, onNavigate }: DashboardProps) {
                 onChange={(e) => setWithdrawAmount(e.target.value)}
                 placeholder="Enter amount"
                 className="bg-input border-border"
+                data-ocid="dashboard.input"
               />
               <Button
                 type="button"
                 onClick={handleWithdraw}
+                disabled={withdrawLoading}
                 className="bg-primary text-primary-foreground hover:opacity-90 whitespace-nowrap"
+                data-ocid="dashboard.primary_button"
               >
-                Withdraw
+                {withdrawLoading ? "Please wait..." : "Withdraw"}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
@@ -218,34 +242,50 @@ export function Dashboard({ userName, onNavigate }: DashboardProps) {
           <h2 className="text-xs tracking-[0.2em] uppercase text-muted-foreground mb-4">
             Recent Transactions
           </h2>
-          <div className="space-y-2">
-            {MOCK_TRANSACTIONS.map((tx) => (
-              <div
-                key={tx.id}
-                className="flex items-center justify-between py-2.5 border-b border-border last:border-0"
-              >
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-semibold ${getTypeColor(tx.type)}`}
-                  >
-                    {tx.type}
-                  </span>
-                  <div>
-                    <p className="text-xs text-foreground">{tx.description}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {tx.date}
-                    </p>
-                  </div>
-                </div>
-                <span
-                  className={`text-sm font-semibold ${tx.type === "withdrawal" ? "text-destructive" : "gold-text"}`}
+          {transactions.length === 0 ? (
+            <div
+              className="text-center py-8 text-muted-foreground text-sm"
+              data-ocid="dashboard.empty_state"
+            >
+              No transactions yet.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {transactions.slice(0, 6).map((tx, idx) => (
+                <div
+                  key={tx.id}
+                  className="flex items-center justify-between py-2.5 border-b border-border last:border-0"
+                  data-ocid={`dashboard.item.${idx + 1}`}
                 >
-                  {tx.type === "withdrawal" ? "-" : "+"}
-                  {formatINR(tx.amount)}
-                </span>
-              </div>
-            ))}
-          </div>
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-semibold ${getTypeColor(tx.type)}`}
+                    >
+                      {tx.type}
+                    </span>
+                    <div>
+                      <p className="text-xs text-foreground">
+                        {tx.description}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {tx.date}
+                      </p>
+                    </div>
+                  </div>
+                  <span
+                    className={`text-sm font-semibold ${
+                      tx.type === "withdrawal"
+                        ? "text-destructive"
+                        : "gold-text"
+                    }`}
+                  >
+                    {tx.type === "withdrawal" ? "-" : "+"}
+                    {formatINR(tx.amount)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

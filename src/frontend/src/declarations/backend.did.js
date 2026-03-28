@@ -19,12 +19,98 @@ export const _CaffeineStorageRefillResult = IDL.Record({
   'success' : IDL.Opt(IDL.Bool),
   'topped_up_amount' : IDL.Opt(IDL.Nat),
 });
+export const Result = IDL.Variant({ 'ok' : IDL.Text, 'err' : IDL.Text });
 export const UserRole = IDL.Variant({
   'admin' : IDL.Null,
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
-export const UserProfile = IDL.Record({ 'name' : IDL.Text });
+export const Investment = IDL.Record({
+  'id' : IDL.Text,
+  'status' : IDL.Variant({
+    'active' : IDL.Null,
+    'pending' : IDL.Null,
+    'rejected' : IDL.Null,
+  }),
+  'userName' : IDL.Text,
+  'userId' : IDL.Principal,
+  'date' : IDL.Text,
+  'tier' : IDL.Variant({
+    'blue' : IDL.Null,
+    'black' : IDL.Null,
+    'white' : IDL.Null,
+  }),
+  'certificateId' : IDL.Text,
+  'amount' : IDL.Nat,
+});
+export const Transaction = IDL.Record({
+  'id' : IDL.Text,
+  'status' : IDL.Variant({
+    'pending' : IDL.Null,
+    'approved' : IDL.Null,
+    'rejected' : IDL.Null,
+    'credited' : IDL.Null,
+  }),
+  'userId' : IDL.Principal,
+  'date' : IDL.Text,
+  'description' : IDL.Text,
+  'txType' : IDL.Variant({
+    'roi' : IDL.Null,
+    'commission' : IDL.Null,
+    'withdrawal' : IDL.Null,
+  }),
+  'amount' : IDL.Nat,
+});
+export const UserProfile = IDL.Record({
+  'status' : IDL.Variant({
+    'active' : IDL.Null,
+    'pending' : IDL.Null,
+    'inactive' : IDL.Null,
+  }),
+  'directReferrals' : IDL.Nat,
+  'packageTier' : IDL.Variant({
+    'blue' : IDL.Null,
+    'none' : IDL.Null,
+    'black' : IDL.Null,
+    'white' : IDL.Null,
+  }),
+  'teamSize' : IDL.Nat,
+  'referralCode' : IDL.Text,
+  'bankAccount' : IDL.Opt(
+    IDL.Record({
+      'ifsc' : IDL.Text,
+      'bankName' : IDL.Text,
+      'accountNumber' : IDL.Text,
+    })
+  ),
+  'joinDate' : IDL.Text,
+  'commissionBalance' : IDL.Nat,
+  'name' : IDL.Text,
+  'email' : IDL.Text,
+  'roiBalance' : IDL.Nat,
+  'totalWithdrawn' : IDL.Nat,
+  'uplineCode' : IDL.Opt(IDL.Text),
+  'phone' : IDL.Text,
+});
+export const Withdrawal = IDL.Record({
+  'id' : IDL.Text,
+  'status' : IDL.Variant({
+    'pending' : IDL.Null,
+    'approved' : IDL.Null,
+    'rejected' : IDL.Null,
+  }),
+  'userName' : IDL.Text,
+  'userId' : IDL.Principal,
+  'date' : IDL.Text,
+  'withdrawalType' : IDL.Variant({ 'roi' : IDL.Null, 'commission' : IDL.Null }),
+  'amount' : IDL.Nat,
+});
+export const DownlineMember = IDL.Record({
+  'referralCode' : IDL.Text,
+  'userId' : IDL.Principal,
+  'name' : IDL.Text,
+  'level' : IDL.Nat,
+});
 
 export const idlService = IDL.Service({
   '_caffeineStorageBlobIsLive' : IDL.Func(
@@ -54,16 +140,73 @@ export const idlService = IDL.Service({
     ),
   '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+  'approveInvestment' : IDL.Func([IDL.Text], [Result], []),
+  'approveWithdrawal' : IDL.Func([IDL.Text], [Result], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'creditROI' : IDL.Func([IDL.Principal, IDL.Nat, IDL.Text], [Result], []),
+  'getAllInvestments' : IDL.Func([], [IDL.Vec(Investment)], ['query']),
+  'getAllTransactions' : IDL.Func([], [IDL.Vec(Transaction)], ['query']),
+  'getAllUsers' : IDL.Func([], [IDL.Vec(UserProfile)], ['query']),
+  'getAllWithdrawals' : IDL.Func([], [IDL.Vec(Withdrawal)], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getMyDirectReferrals' : IDL.Func([], [IDL.Vec(UserProfile)], ['query']),
+  'getMyDownline' : IDL.Func([], [IDL.Vec(DownlineMember)], ['query']),
+  'getMyInvestments' : IDL.Func([], [IDL.Vec(Investment)], ['query']),
+  'getMyProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
+  'getMyTransactions' : IDL.Func([], [IDL.Vec(Transaction)], ['query']),
+  'getMyWithdrawals' : IDL.Func([], [IDL.Vec(Withdrawal)], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
       ['query'],
     ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'loginByEmail' : IDL.Func([IDL.Text], [IDL.Opt(UserProfile)], ['query']),
+  'registerUser' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Opt(IDL.Text)],
+      [Result],
+      [],
+    ),
+  'rejectInvestment' : IDL.Func([IDL.Text], [Result], []),
+  'rejectWithdrawal' : IDL.Func([IDL.Text], [Result], []),
+  'requestWithdrawal' : IDL.Func(
+      [IDL.Nat, IDL.Variant({ 'roi' : IDL.Null, 'commission' : IDL.Null })],
+      [Result],
+      [],
+    ),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'submitInvestment' : IDL.Func(
+      [
+        IDL.Variant({
+          'blue' : IDL.Null,
+          'black' : IDL.Null,
+          'white' : IDL.Null,
+        }),
+        IDL.Nat,
+        IDL.Text,
+      ],
+      [Result],
+      [],
+    ),
+  'updateMyBankAccount' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text],
+      [Result],
+      [],
+    ),
+  'updateMyProfile' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [Result], []),
+  'updateUserStatus' : IDL.Func(
+      [
+        IDL.Principal,
+        IDL.Variant({
+          'active' : IDL.Null,
+          'pending' : IDL.Null,
+          'inactive' : IDL.Null,
+        }),
+      ],
+      [Result],
+      [],
+    ),
 });
 
 export const idlInitArgs = [];
@@ -80,12 +223,101 @@ export const idlFactory = ({ IDL }) => {
     'success' : IDL.Opt(IDL.Bool),
     'topped_up_amount' : IDL.Opt(IDL.Nat),
   });
+  const Result = IDL.Variant({ 'ok' : IDL.Text, 'err' : IDL.Text });
   const UserRole = IDL.Variant({
     'admin' : IDL.Null,
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
-  const UserProfile = IDL.Record({ 'name' : IDL.Text });
+  const Investment = IDL.Record({
+    'id' : IDL.Text,
+    'status' : IDL.Variant({
+      'active' : IDL.Null,
+      'pending' : IDL.Null,
+      'rejected' : IDL.Null,
+    }),
+    'userName' : IDL.Text,
+    'userId' : IDL.Principal,
+    'date' : IDL.Text,
+    'tier' : IDL.Variant({
+      'blue' : IDL.Null,
+      'black' : IDL.Null,
+      'white' : IDL.Null,
+    }),
+    'certificateId' : IDL.Text,
+    'amount' : IDL.Nat,
+  });
+  const Transaction = IDL.Record({
+    'id' : IDL.Text,
+    'status' : IDL.Variant({
+      'pending' : IDL.Null,
+      'approved' : IDL.Null,
+      'rejected' : IDL.Null,
+      'credited' : IDL.Null,
+    }),
+    'userId' : IDL.Principal,
+    'date' : IDL.Text,
+    'description' : IDL.Text,
+    'txType' : IDL.Variant({
+      'roi' : IDL.Null,
+      'commission' : IDL.Null,
+      'withdrawal' : IDL.Null,
+    }),
+    'amount' : IDL.Nat,
+  });
+  const UserProfile = IDL.Record({
+    'status' : IDL.Variant({
+      'active' : IDL.Null,
+      'pending' : IDL.Null,
+      'inactive' : IDL.Null,
+    }),
+    'directReferrals' : IDL.Nat,
+    'packageTier' : IDL.Variant({
+      'blue' : IDL.Null,
+      'none' : IDL.Null,
+      'black' : IDL.Null,
+      'white' : IDL.Null,
+    }),
+    'teamSize' : IDL.Nat,
+    'referralCode' : IDL.Text,
+    'bankAccount' : IDL.Opt(
+      IDL.Record({
+        'ifsc' : IDL.Text,
+        'bankName' : IDL.Text,
+        'accountNumber' : IDL.Text,
+      })
+    ),
+    'joinDate' : IDL.Text,
+    'commissionBalance' : IDL.Nat,
+    'name' : IDL.Text,
+    'email' : IDL.Text,
+    'roiBalance' : IDL.Nat,
+    'totalWithdrawn' : IDL.Nat,
+    'uplineCode' : IDL.Opt(IDL.Text),
+    'phone' : IDL.Text,
+  });
+  const Withdrawal = IDL.Record({
+    'id' : IDL.Text,
+    'status' : IDL.Variant({
+      'pending' : IDL.Null,
+      'approved' : IDL.Null,
+      'rejected' : IDL.Null,
+    }),
+    'userName' : IDL.Text,
+    'userId' : IDL.Principal,
+    'date' : IDL.Text,
+    'withdrawalType' : IDL.Variant({
+      'roi' : IDL.Null,
+      'commission' : IDL.Null,
+    }),
+    'amount' : IDL.Nat,
+  });
+  const DownlineMember = IDL.Record({
+    'referralCode' : IDL.Text,
+    'userId' : IDL.Principal,
+    'name' : IDL.Text,
+    'level' : IDL.Nat,
+  });
   
   return IDL.Service({
     '_caffeineStorageBlobIsLive' : IDL.Func(
@@ -115,16 +347,73 @@ export const idlFactory = ({ IDL }) => {
       ),
     '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+    'approveInvestment' : IDL.Func([IDL.Text], [Result], []),
+    'approveWithdrawal' : IDL.Func([IDL.Text], [Result], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'creditROI' : IDL.Func([IDL.Principal, IDL.Nat, IDL.Text], [Result], []),
+    'getAllInvestments' : IDL.Func([], [IDL.Vec(Investment)], ['query']),
+    'getAllTransactions' : IDL.Func([], [IDL.Vec(Transaction)], ['query']),
+    'getAllUsers' : IDL.Func([], [IDL.Vec(UserProfile)], ['query']),
+    'getAllWithdrawals' : IDL.Func([], [IDL.Vec(Withdrawal)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getMyDirectReferrals' : IDL.Func([], [IDL.Vec(UserProfile)], ['query']),
+    'getMyDownline' : IDL.Func([], [IDL.Vec(DownlineMember)], ['query']),
+    'getMyInvestments' : IDL.Func([], [IDL.Vec(Investment)], ['query']),
+    'getMyProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
+    'getMyTransactions' : IDL.Func([], [IDL.Vec(Transaction)], ['query']),
+    'getMyWithdrawals' : IDL.Func([], [IDL.Vec(Withdrawal)], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],
         ['query'],
       ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'loginByEmail' : IDL.Func([IDL.Text], [IDL.Opt(UserProfile)], ['query']),
+    'registerUser' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Opt(IDL.Text)],
+        [Result],
+        [],
+      ),
+    'rejectInvestment' : IDL.Func([IDL.Text], [Result], []),
+    'rejectWithdrawal' : IDL.Func([IDL.Text], [Result], []),
+    'requestWithdrawal' : IDL.Func(
+        [IDL.Nat, IDL.Variant({ 'roi' : IDL.Null, 'commission' : IDL.Null })],
+        [Result],
+        [],
+      ),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'submitInvestment' : IDL.Func(
+        [
+          IDL.Variant({
+            'blue' : IDL.Null,
+            'black' : IDL.Null,
+            'white' : IDL.Null,
+          }),
+          IDL.Nat,
+          IDL.Text,
+        ],
+        [Result],
+        [],
+      ),
+    'updateMyBankAccount' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Text],
+        [Result],
+        [],
+      ),
+    'updateMyProfile' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [Result], []),
+    'updateUserStatus' : IDL.Func(
+        [
+          IDL.Principal,
+          IDL.Variant({
+            'active' : IDL.Null,
+            'pending' : IDL.Null,
+            'inactive' : IDL.Null,
+          }),
+        ],
+        [Result],
+        [],
+      ),
   });
 };
 

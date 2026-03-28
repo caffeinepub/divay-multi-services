@@ -4,6 +4,8 @@ export interface InvestmentPackage {
   tier: PackageTier;
   name: string;
   amount: number;
+  minAmount: number;
+  maxAmount: number;
   monthlyROI: number;
   roiPercent: number;
 }
@@ -68,22 +70,28 @@ export const PACKAGES: InvestmentPackage[] = [
   {
     tier: "black",
     name: "Black Diamond",
-    amount: 50000,
-    monthlyROI: 2500,
+    amount: 100000,
+    minAmount: 10000,
+    maxAmount: 100000,
+    monthlyROI: 5000,
     roiPercent: 5,
   },
   {
     tier: "blue",
     name: "Blue Diamond",
-    amount: 100000,
-    monthlyROI: 5000,
+    amount: 500000,
+    minAmount: 100000,
+    maxAmount: 500000,
+    monthlyROI: 25000,
     roiPercent: 5,
   },
   {
     tier: "white",
     name: "White Diamond",
-    amount: 150000,
-    monthlyROI: 7500,
+    amount: 1000000,
+    minAmount: 500000,
+    maxAmount: 1000000,
+    monthlyROI: 50000,
     roiPercent: 5,
   },
 ];

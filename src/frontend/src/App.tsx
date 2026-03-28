@@ -8,30 +8,37 @@ import { Dashboard } from "./pages/Dashboard";
 import { Footer } from "./pages/Footer";
 import { Investments } from "./pages/Investments";
 import { Network } from "./pages/Network";
+import { Profile } from "./pages/Profile";
+import { SalaryIncome } from "./pages/SalaryIncome";
+import type { User } from "./types";
 
-type Page = "dashboard" | "network" | "investments" | "admin" | "certificate";
+type Page =
+  | "dashboard"
+  | "network"
+  | "investments"
+  | "admin"
+  | "certificate"
+  | "salary"
+  | "profile";
 
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userName, setUserName] = useState("");
+  const [userProfile, setUserProfile] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [currentPage, setCurrentPage] = useState<Page>("dashboard");
 
-  const handleLogin = (name: string, admin: boolean) => {
-    setUserName(name);
+  const handleLogin = (profile: User, admin: boolean) => {
+    setUserProfile(profile);
     setIsAdmin(admin);
-    setIsLoggedIn(true);
     setCurrentPage("dashboard");
   };
 
   const handleLogout = () => {
-    setIsLoggedIn(false);
-    setUserName("");
+    setUserProfile(null);
     setIsAdmin(false);
     setCurrentPage("dashboard");
   };
 
-  if (!isLoggedIn) {
+  if (!userProfile) {
     return (
       <>
         <AuthPage onLogin={handleLogin} />
@@ -43,21 +50,33 @@ export default function App() {
   const renderPage = () => {
     switch (currentPage) {
       case "dashboard":
-        return <Dashboard userName={userName} onNavigate={setCurrentPage} />;
+        return (
+          <Dashboard userProfile={userProfile} onNavigate={setCurrentPage} />
+        );
       case "network":
-        return <Network />;
+        return <Network userProfile={userProfile} />;
       case "investments":
-        return <Investments onNavigate={setCurrentPage} />;
+        return (
+          <Investments userProfile={userProfile} onNavigate={setCurrentPage} />
+        );
+      case "salary":
+        return <SalaryIncome />;
       case "admin":
         return isAdmin ? (
           <AdminPanel />
         ) : (
-          <Dashboard userName={userName} onNavigate={setCurrentPage} />
+          <Dashboard userProfile={userProfile} onNavigate={setCurrentPage} />
         );
       case "certificate":
-        return <Certificate />;
+        return <Certificate userProfile={userProfile} />;
+      case "profile":
+        return (
+          <Profile userProfile={userProfile} onProfileUpdate={setUserProfile} />
+        );
       default:
-        return <Dashboard userName={userName} onNavigate={setCurrentPage} />;
+        return (
+          <Dashboard userProfile={userProfile} onNavigate={setCurrentPage} />
+        );
     }
   };
 
@@ -66,7 +85,7 @@ export default function App() {
       <Navbar
         currentPage={currentPage}
         onNavigate={setCurrentPage}
-        userName={userName}
+        userName={userProfile.name}
         isAdmin={isAdmin}
         onLogout={handleLogout}
       />

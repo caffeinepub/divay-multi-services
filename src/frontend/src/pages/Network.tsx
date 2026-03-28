@@ -1,30 +1,31 @@
+import { useState } from "react";
 import { toast } from "sonner";
-import { MOCK_CURRENT_USER, MOCK_DOWNLINE } from "../mockData";
-import { PACKAGES, formatINR } from "../types";
-import type { DownlineMember } from "../types";
+import { MOCK_DOWNLINE } from "../mockData";
+import type { DownlineMember, User } from "../types";
+import { PACKAGES } from "../types";
 
-export function Network() {
-  const user = MOCK_CURRENT_USER;
-  const referralLink = `https://aura-diamond.icp.app/register?ref=${user.referralCode}`;
+interface NetworkProps {
+  userProfile: User;
+}
+
+export function Network({ userProfile }: NetworkProps) {
+  const [downline] = useState(MOCK_DOWNLINE);
+
+  const referralLink = `https://divay.icp.app/register?ref=${userProfile.referralCode}`;
 
   const copyLink = () => {
     navigator.clipboard.writeText(referralLink);
     toast.success("Referral link copied!");
   };
 
-  const level1 = MOCK_DOWNLINE.filter((m) => m.level === 1);
-  const level2 = MOCK_DOWNLINE.filter((m) => m.level === 2);
+  const level1 = downline.filter((m) => m.level === 1);
+  const level2 = downline.filter((m) => m.level === 2);
 
   const tierColor = (pkg: string) => {
     if (pkg === "white") return "oklch(0.9 0.02 250)";
     if (pkg === "blue") return "oklch(0.6 0.15 240)";
     if (pkg === "black") return "oklch(0.72 0.12 75)";
     return "oklch(0.5 0 0)";
-  };
-
-  const tierLabel = (pkg: string) => {
-    const p = PACKAGES.find((x) => x.tier === pkg);
-    return p ? p.name : "No Package";
   };
 
   return (
@@ -55,173 +56,147 @@ export function Network() {
               border: "1px solid oklch(0.72 0.12 75 / 0.5)",
               color: "oklch(0.72 0.12 75)",
             }}
+            data-ocid="network.button"
           >
             Copy Link
           </button>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
           Your referral code:{" "}
-          <span className="gold-text font-semibold">{user.referralCode}</span>
+          <span className="gold-text font-semibold">
+            {userProfile.referralCode}
+          </span>
         </p>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatBox
           label="Direct Referrals"
-          value={user.directReferrals.toString()}
+          value={userProfile.directReferrals.toString()}
         />
-        <StatBox label="Total Team" value={user.teamSize.toString()} />
-        <StatBox label="Active Investors" value="8" />
-        <StatBox label="Team Volume" value={formatINR(750000)} />
+        <StatBox label="Total Team" value={userProfile.teamSize.toString()} />
+        <StatBox
+          label="Network Levels"
+          value={
+            downline.length > 0
+              ? String(Math.max(...downline.map((d) => d.level)))
+              : "0"
+          }
+        />
+        <StatBox label="Total Members" value={downline.length.toString()} />
       </div>
 
       <div className="diamond-bg gold-border rounded-xl p-6 card-glow">
         <div className="flex items-start justify-between mb-6 flex-wrap gap-4">
           <h2 className="text-sm tracking-[0.2em] uppercase font-semibold">
-            Downline Team Tree
+            Downline Tree
           </h2>
-          <div className="flex flex-wrap gap-3 text-[10px] uppercase tracking-wider">
-            <LegendItem color="oklch(0.72 0.12 75)" label="Black Diamond" />
-            <LegendItem color="oklch(0.6 0.15 240)" label="Blue Diamond" />
-            <LegendItem color="oklch(0.9 0.02 250)" label="White Diamond" />
-          </div>
+          <span className="text-xs text-muted-foreground">
+            {downline.length} members in your network
+          </span>
         </div>
 
-        <div className="overflow-x-auto">
-          <div className="min-w-[600px] flex flex-col items-center gap-4">
-            <div className="flex flex-col items-center">
-              <div
-                className="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold text-primary-foreground gold-glow"
-                style={{
-                  background: "oklch(0.72 0.12 75)",
-                  border: "2px solid oklch(0.72 0.12 75)",
-                }}
-              >
-                {user.name.charAt(0)}
-              </div>
-              <div className="text-xs mt-1 font-semibold text-foreground">
-                {user.name}
-              </div>
-              <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                {tierLabel(user.package)}
-              </div>
-            </div>
-
-            <div className="h-6 w-px bg-border" />
-
+        {downline.length === 0 ? (
+          <div className="text-center py-8" data-ocid="network.empty_state">
+            <p className="text-4xl mb-3">◆</p>
+            <p className="text-sm text-muted-foreground">
+              No members in your network yet.
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Share your referral link to grow your team!
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-6">
             {level1.length > 0 && (
-              <>
-                <div className="flex gap-8 justify-center">
-                  {level1.map((member) => (
-                    <TreeNode
+              <div>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-3">
+                  Level 1 — Direct Referrals ({level1.length})
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {level1.map((member, idx) => (
+                    <MemberCard
                       key={member.id}
                       member={member}
-                      color={tierColor(member.package)}
+                      tierColor={tierColor(member.package)}
+                      idx={idx + 1}
                     />
                   ))}
                 </div>
-                <div className="h-6 w-px bg-border" />
-                {level2.length > 0 && (
-                  <div className="flex gap-6 justify-center flex-wrap">
-                    {level2.map((member) => (
-                      <TreeNode
+              </div>
+            )}
+            {level2.length > 0 && (
+              <div>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-3">
+                  Level 2 ({level2.length})
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {level2.map((member, idx) => (
+                    <MemberCard
+                      key={member.id}
+                      member={member}
+                      tierColor={tierColor(member.package)}
+                      idx={idx + 1}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+            {downline.filter((m) => m.level > 2).length > 0 && (
+              <div>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-3">
+                  Deeper Levels ({downline.filter((m) => m.level > 2).length})
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {downline
+                    .filter((m) => m.level > 2)
+                    .map((member, idx) => (
+                      <MemberCard
                         key={member.id}
                         member={member}
-                        color={tierColor(member.package)}
-                        small
+                        tierColor={tierColor(member.package)}
+                        idx={idx + 1}
                       />
                     ))}
-                  </div>
-                )}
-              </>
+                </div>
+              </div>
             )}
           </div>
-        </div>
-      </div>
-
-      <div className="diamond-bg gold-border rounded-xl p-6 card-glow">
-        <h2 className="text-xs tracking-[0.2em] uppercase text-muted-foreground mb-4">
-          Downline Members
-        </h2>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border">
-                {["Name", "Level", "Package", "Joined", "Team Size"].map(
-                  (h) => (
-                    <th
-                      key={h}
-                      className="text-left py-2 px-3 text-[10px] uppercase tracking-wider text-muted-foreground"
-                    >
-                      {h}
-                    </th>
-                  ),
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {MOCK_DOWNLINE.map((m) => (
-                <tr
-                  key={m.id}
-                  className="border-b border-border/50 hover:bg-muted/30 transition-colors"
-                >
-                  <td className="py-3 px-3 text-sm font-medium">{m.name}</td>
-                  <td className="py-3 px-3">
-                    <span className="text-xs bg-muted/50 px-2 py-0.5 rounded uppercase tracking-wider">
-                      L{m.level}
-                    </span>
-                  </td>
-                  <td className="py-3 px-3">
-                    <span
-                      className="text-xs font-semibold uppercase tracking-wider"
-                      style={{ color: tierColor(m.package) }}
-                    >
-                      {tierLabel(m.package)}
-                    </span>
-                  </td>
-                  <td className="py-3 px-3 text-xs text-muted-foreground">
-                    {m.joinDate}
-                  </td>
-                  <td className="py-3 px-3 text-sm font-semibold">
-                    {m.teamSize}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        )}
       </div>
     </div>
   );
 }
 
-function TreeNode({
+function MemberCard({
   member,
-  color,
-  small = false,
-}: { member: DownlineMember; color: string; small?: boolean }) {
-  const pkg = PACKAGES.find((p) => p.tier === member.package);
+  tierColor,
+  idx,
+}: { member: DownlineMember; tierColor: string; idx: number }) {
+  const pkgName =
+    PACKAGES.find((p) => p.tier === member.package)?.name ?? member.package;
   return (
-    <div className="flex flex-col items-center gap-1">
-      <div
-        className={`${small ? "w-10 h-10 text-sm" : "w-12 h-12 text-base"} rounded-full flex items-center justify-center font-bold`}
-        style={{
-          background: `${color}25`,
-          border: `1.5px solid ${color}`,
-          color,
-        }}
-      >
-        {member.name.charAt(0)}
-      </div>
-      <div
-        className={`${small ? "text-[9px]" : "text-[10px]"} font-medium text-foreground text-center max-w-[72px] truncate`}
-      >
-        {member.name}
-      </div>
-      <div
-        className={`${small ? "text-[8px]" : "text-[9px]"} text-muted-foreground uppercase tracking-wider`}
-      >
-        {pkg?.name.split(" ")[0] ?? "None"}
+    <div
+      className="bg-muted/30 rounded-lg p-4 border border-border"
+      data-ocid={`network.item.${idx}`}
+    >
+      <div className="flex items-center gap-3">
+        <div
+          className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
+          style={{
+            background: `${tierColor}20`,
+            color: tierColor,
+            border: `1px solid ${tierColor}40`,
+          }}
+        >
+          {member.name.charAt(0).toUpperCase()}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold truncate">{member.name}</p>
+          <p className="text-xs text-muted-foreground">
+            Level {member.level} • {pkgName}
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -229,20 +204,11 @@ function TreeNode({
 
 function StatBox({ label, value }: { label: string; value: string }) {
   return (
-    <div className="diamond-bg gold-border rounded-xl p-4 card-glow text-center">
-      <p className="text-xl font-bold gold-text">{value}</p>
-      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">
+    <div className="diamond-bg gold-border rounded-xl p-4 text-center card-glow">
+      <p className="text-2xl font-bold gold-text">{value}</p>
+      <p className="text-xs uppercase tracking-wider text-muted-foreground mt-1">
         {label}
       </p>
-    </div>
-  );
-}
-
-function LegendItem({ color, label }: { color: string; label: string }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <div className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
-      <span className="text-muted-foreground">{label}</span>
     </div>
   );
 }

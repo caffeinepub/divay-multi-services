@@ -10,10 +10,80 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
-export interface UserProfile { 'name' : string }
+export interface DownlineMember {
+  'referralCode' : string,
+  'userId' : Principal,
+  'name' : string,
+  'level' : bigint,
+}
+export interface Investment {
+  'id' : string,
+  'status' : { 'active' : null } |
+    { 'pending' : null } |
+    { 'rejected' : null },
+  'userName' : string,
+  'userId' : Principal,
+  'date' : string,
+  'tier' : { 'blue' : null } |
+    { 'black' : null } |
+    { 'white' : null },
+  'certificateId' : string,
+  'amount' : bigint,
+}
+export type Result = { 'ok' : string } |
+  { 'err' : string };
+export interface Transaction {
+  'id' : string,
+  'status' : { 'pending' : null } |
+    { 'approved' : null } |
+    { 'rejected' : null } |
+    { 'credited' : null },
+  'userId' : Principal,
+  'date' : string,
+  'description' : string,
+  'txType' : { 'roi' : null } |
+    { 'commission' : null } |
+    { 'withdrawal' : null },
+  'amount' : bigint,
+}
+export interface UserProfile {
+  'status' : { 'active' : null } |
+    { 'pending' : null } |
+    { 'inactive' : null },
+  'directReferrals' : bigint,
+  'packageTier' : { 'blue' : null } |
+    { 'none' : null } |
+    { 'black' : null } |
+    { 'white' : null },
+  'teamSize' : bigint,
+  'referralCode' : string,
+  'bankAccount' : [] | [
+    { 'ifsc' : string, 'bankName' : string, 'accountNumber' : string }
+  ],
+  'joinDate' : string,
+  'commissionBalance' : bigint,
+  'name' : string,
+  'email' : string,
+  'roiBalance' : bigint,
+  'totalWithdrawn' : bigint,
+  'uplineCode' : [] | [string],
+  'phone' : string,
+}
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
+export interface Withdrawal {
+  'id' : string,
+  'status' : { 'pending' : null } |
+    { 'approved' : null } |
+    { 'rejected' : null },
+  'userName' : string,
+  'userId' : Principal,
+  'date' : string,
+  'withdrawalType' : { 'roi' : null } |
+    { 'commission' : null },
+  'amount' : bigint,
+}
 export interface _CaffeineStorageCreateCertificateResult {
   'method' : string,
   'blob_hash' : string,
@@ -42,12 +112,57 @@ export interface _SERVICE {
   >,
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
+  'approveInvestment' : ActorMethod<[string], Result>,
+  'approveWithdrawal' : ActorMethod<[string], Result>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'creditROI' : ActorMethod<[Principal, bigint, string], Result>,
+  'getAllInvestments' : ActorMethod<[], Array<Investment>>,
+  'getAllTransactions' : ActorMethod<[], Array<Transaction>>,
+  'getAllUsers' : ActorMethod<[], Array<UserProfile>>,
+  'getAllWithdrawals' : ActorMethod<[], Array<Withdrawal>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
+  'getMyDirectReferrals' : ActorMethod<[], Array<UserProfile>>,
+  'getMyDownline' : ActorMethod<[], Array<DownlineMember>>,
+  'getMyInvestments' : ActorMethod<[], Array<Investment>>,
+  'getMyProfile' : ActorMethod<[], [] | [UserProfile]>,
+  'getMyTransactions' : ActorMethod<[], Array<Transaction>>,
+  'getMyWithdrawals' : ActorMethod<[], Array<Withdrawal>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'loginByEmail' : ActorMethod<[string], [] | [UserProfile]>,
+  'registerUser' : ActorMethod<
+    [string, string, string, string, [] | [string]],
+    Result
+  >,
+  'rejectInvestment' : ActorMethod<[string], Result>,
+  'rejectWithdrawal' : ActorMethod<[string], Result>,
+  'requestWithdrawal' : ActorMethod<
+    [bigint, { 'roi' : null } | { 'commission' : null }],
+    Result
+  >,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'submitInvestment' : ActorMethod<
+    [
+      { 'blue' : null } |
+        { 'black' : null } |
+        { 'white' : null },
+      bigint,
+      string,
+    ],
+    Result
+  >,
+  'updateMyBankAccount' : ActorMethod<[string, string, string], Result>,
+  'updateMyProfile' : ActorMethod<[string, string, string], Result>,
+  'updateUserStatus' : ActorMethod<
+    [
+      Principal,
+      { 'active' : null } |
+        { 'pending' : null } |
+        { 'inactive' : null },
+    ],
+    Result
+  >,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

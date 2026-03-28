@@ -1,7 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
-type Page = "dashboard" | "network" | "investments" | "admin" | "certificate";
+type Page =
+  | "dashboard"
+  | "network"
+  | "investments"
+  | "admin"
+  | "certificate"
+  | "salary"
+  | "profile";
 
 interface NavbarProps {
   currentPage: Page;
@@ -24,6 +31,7 @@ export function Navbar({
     { id: "dashboard", label: "Dashboard" },
     { id: "network", label: "Network" },
     { id: "investments", label: "Investments" },
+    { id: "salary", label: "Salary Income" },
     ...(isAdmin ? [{ id: "admin" as Page, label: "Admin" }] : []),
   ];
 
@@ -61,13 +69,35 @@ export function Navbar({
           ))}
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="hidden sm:block text-xs text-muted-foreground">
-            {userName}
-          </span>
+        <div className="flex items-center gap-2">
+          {!isAdmin && (
+            <button
+              type="button"
+              data-ocid="navbar.profile.link"
+              onClick={() => onNavigate("profile")}
+              className="hidden sm:flex items-center gap-1.5 group"
+              title="Profile"
+            >
+              <div className="w-7 h-7 rounded-full bg-primary/15 border border-primary/40 flex items-center justify-center group-hover:bg-primary/25 transition-colors">
+                <span className="text-xs font-semibold gold-text">
+                  {userName.charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <span
+                className={`text-xs tracking-wide transition-colors ${
+                  currentPage === "profile"
+                    ? "gold-text font-semibold"
+                    : "text-muted-foreground group-hover:text-primary"
+                }`}
+              >
+                {userName}
+              </span>
+            </button>
+          )}
           <Button
             variant="outline"
             size="sm"
+            data-ocid="navbar.logout.button"
             onClick={onLogout}
             className="text-xs tracking-wider uppercase border-primary/50 text-primary hover:bg-primary hover:text-primary-foreground rounded-full"
           >
@@ -114,6 +144,21 @@ export function Navbar({
               {item.label}
             </button>
           ))}
+          {!isAdmin && (
+            <button
+              type="button"
+              data-ocid="navbar.mobile.profile.link"
+              onClick={() => {
+                onNavigate("profile");
+                setMenuOpen(false);
+              }}
+              className={`block w-full text-left py-2 nav-link ${
+                currentPage === "profile" ? "active" : ""
+              }`}
+            >
+              Profile
+            </button>
+          )}
         </div>
       )}
     </nav>

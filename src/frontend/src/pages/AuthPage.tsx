@@ -3,9 +3,66 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { toast } from "sonner";
+import { MOCK_CURRENT_USER } from "../mockData";
+import type { User } from "../types";
 
 interface AuthPageProps {
-  onLogin: (name: string, isAdmin: boolean) => void;
+  onLogin: (profile: User, isAdmin: boolean) => void;
+}
+
+const ADMIN_EMAILS = ["admin@divay.com", "admin@aura.com"];
+
+const MOCK_ADMIN_USER: User = {
+  id: "admin-001",
+  name: "Admin",
+  email: "admin@divay.com",
+  phone: "+91 00000 00000",
+  referralCode: "ADMIN001",
+  package: "none",
+  joinDate: "2024-01-01",
+  status: "active",
+  directReferrals: 0,
+  teamSize: 0,
+  roiBalance: 0,
+  commissionBalance: 0,
+  totalWithdrawn: 0,
+};
+
+function EyeIcon({ open }: { open: boolean }) {
+  return open ? (
+    <svg
+      role="img"
+      aria-label="Hide password"
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  ) : (
+    <svg
+      role="img"
+      aria-label="Show password"
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+      <line x1="1" y1="1" x2="23" y2="23" />
+    </svg>
+  );
 }
 
 export function AuthPage({ onLogin }: AuthPageProps) {
@@ -13,31 +70,56 @@ export function AuthPage({ onLogin }: AuthPageProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [referralCode, setReferralCode] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [referralCode, setReferralCode] = useState("");
+  const [uplineCode, setUplineCode] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
-    if (mode === "login") {
-      setLoading(false);
-      if (email === "admin@divay.com") {
-        onLogin("Admin User", true);
+
+    setTimeout(() => {
+      if (mode === "login") {
+        if (!password) {
+          toast.error("Please enter your password");
+          setLoading(false);
+          return;
+        }
+        if (ADMIN_EMAILS.includes(email.toLowerCase())) {
+          onLogin({ ...MOCK_ADMIN_USER, email }, true);
+        } else {
+          onLogin(
+            { ...MOCK_CURRENT_USER, email: email || MOCK_CURRENT_USER.email },
+            false,
+          );
+        }
       } else {
-        onLogin(name || "Rajesh Kumar", false);
+        if (!name || !email || !phone || !password) {
+          toast.error("Please fill all required fields");
+          setLoading(false);
+          return;
+        }
+        if (password !== confirmPassword) {
+          toast.error("Passwords do not match");
+          setLoading(false);
+          return;
+        }
+        if (password.length < 6) {
+          toast.error("Password must be at least 6 characters");
+          setLoading(false);
+          return;
+        }
+        toast.success("Registration successful! Please log in.");
+        setMode("login");
+        setPassword("");
+        setConfirmPassword("");
       }
-    } else {
-      if (!name || !email || !phone) {
-        toast.error("Please fill all required fields");
-        setLoading(false);
-        return;
-      }
-      toast.success("Registration successful! Please log in.");
-      setMode("login");
       setLoading(false);
-    }
+    }, 500);
   };
 
   return (
@@ -107,6 +189,7 @@ export function AuthPage({ onLogin }: AuthPageProps) {
                   ? "bg-primary text-primary-foreground font-semibold"
                   : "text-muted-foreground hover:text-foreground"
               }`}
+              data-ocid="auth.tab"
             >
               Login
             </button>
@@ -118,6 +201,7 @@ export function AuthPage({ onLogin }: AuthPageProps) {
                   ? "bg-primary text-primary-foreground font-semibold"
                   : "text-muted-foreground hover:text-foreground"
               }`}
+              data-ocid="auth.tab"
             >
               Register
             </button>
@@ -134,6 +218,7 @@ export function AuthPage({ onLogin }: AuthPageProps) {
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Rajesh Kumar"
                   className="mt-1 bg-input border-border"
+                  data-ocid="auth.input"
                 />
               </div>
             )}
@@ -147,6 +232,7 @@ export function AuthPage({ onLogin }: AuthPageProps) {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 className="mt-1 bg-input border-border"
+                data-ocid="auth.input"
               />
             </div>
             {mode === "register" && (
@@ -159,6 +245,7 @@ export function AuthPage({ onLogin }: AuthPageProps) {
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="+91 98765 43210"
                   className="mt-1 bg-input border-border"
+                  data-ocid="auth.input"
                 />
               </div>
             )}
@@ -166,14 +253,52 @@ export function AuthPage({ onLogin }: AuthPageProps) {
               <Label className="text-xs tracking-wider uppercase text-muted-foreground">
                 Password *
               </Label>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="mt-1 bg-input border-border"
-              />
+              <div className="relative mt-1">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  className="bg-input border-border pr-10"
+                  data-ocid="auth.input"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  <EyeIcon open={showPassword} />
+                </button>
+              </div>
             </div>
+            {mode === "register" && (
+              <div>
+                <Label className="text-xs tracking-wider uppercase text-muted-foreground">
+                  Confirm Password *
+                </Label>
+                <div className="relative mt-1">
+                  <Input
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Re-enter your password"
+                    className="bg-input border-border pr-10"
+                    data-ocid="auth.input"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label={
+                      showConfirmPassword ? "Hide password" : "Show password"
+                    }
+                  >
+                    <EyeIcon open={showConfirmPassword} />
+                  </button>
+                </div>
+              </div>
+            )}
             {mode === "register" && (
               <div>
                 <Label className="text-xs tracking-wider uppercase text-muted-foreground">
@@ -184,14 +309,29 @@ export function AuthPage({ onLogin }: AuthPageProps) {
                   onChange={(e) => setReferralCode(e.target.value)}
                   placeholder="e.g. RK2024001"
                   className="mt-1 bg-input border-border"
+                  data-ocid="auth.input"
                 />
               </div>
             )}
-
+            {mode === "register" && (
+              <div>
+                <Label className="text-xs tracking-wider uppercase text-muted-foreground">
+                  Upline Code (Optional)
+                </Label>
+                <Input
+                  value={uplineCode}
+                  onChange={(e) => setUplineCode(e.target.value)}
+                  placeholder="Sponsor's referral code"
+                  className="mt-1 bg-input border-border"
+                  data-ocid="auth.input"
+                />
+              </div>
+            )}
             <Button
               type="submit"
               disabled={loading}
               className="w-full mt-2 bg-primary text-primary-foreground tracking-widest uppercase text-sm font-semibold hover:opacity-90 gold-glow"
+              data-ocid="auth.submit_button"
             >
               {loading
                 ? "Please wait..."
@@ -200,28 +340,6 @@ export function AuthPage({ onLogin }: AuthPageProps) {
                   : "Create Account"}
             </Button>
           </form>
-
-          {mode === "login" && (
-            <div className="mt-5 p-3 rounded-lg border border-border bg-muted/40 text-xs text-muted-foreground space-y-1">
-              <p
-                className="font-semibold tracking-wider uppercase text-xs"
-                style={{ color: "oklch(0.72 0.12 75)" }}
-              >
-                Demo Credentials
-              </p>
-              <p>
-                <span className="font-medium text-foreground">Admin ID:</span>{" "}
-                admin@divay.com
-              </p>
-              <p>
-                <span className="font-medium text-foreground">Password:</span>{" "}
-                admin123
-              </p>
-              <p className="mt-1 text-muted-foreground">
-                Investor: Use any email to login
-              </p>
-            </div>
-          )}
         </div>
       </div>
     </div>
